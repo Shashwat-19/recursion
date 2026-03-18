@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recursion & The Stack: Fibonacci Visualizer</title>
+    <style>
+        :root {
+            --stack-bg: #1e293b;
+            --frame-bg: #3b82f6;
+            --frame-border: #60a5fa;
+            --return-bg: #10b981;
+            --text-color: #f3f4f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            color: #1f2937;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1, h2 { color: #1e3a8a; margin-bottom: 0.5rem; }
+        
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        /* --- LEFT SIDE: CONTROLS & CODE --- */
+        .panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            background: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        input {
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            width: 60px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:disabled { background-color: #94a3b8; }
+
+        pre {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.9rem;
+        }
+
+        /* --- RIGHT SIDE: VISUALIZATION --- */
+        .vis-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        #stack-view {
+            flex-grow: 1;
+            background: var(--stack-bg);
+            border-radius: 8px;
+            position: relative;
+            padding: 20px;
+            display: flex;
+            flex-direction: column-reverse; /* Stack grows up */
+            align-items: center;
+            overflow-y: auto;
+            border: 2px solid #475569;
+        }
+
+        .stack-label {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: rgba(255,255,255,0.3);
+            font-weight: bold;
+            font-size: 1.5rem;
+            pointer-events: none;
+        }
+
+        /* Stack Frame Animation */
+        .stack-frame {
+            width: 80%;
+            padding: 10px;
+            background: var(--frame-bg);
+            border: 2px solid var(--frame-border);
+            color: white;
+            margin-top: 5px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            animation: pushAnimation 0.5s ease-out;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .stack-frame.returning {
+            background: var(--return-bg);
+            border-color: #34d399;
+            animation: popAnimation 0.5s ease-in forwards;
+        }
+
+        .info-tag {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            display: block;
+            margin-top: 2px;
+        }
+
+        @keyframes pushAnimation {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes popAnimation {
+            to { opacity: 0; transform: scale(0.9); }
+        }
+
+        #status-log {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f1f5f9;
+            border-radius: 5px;
+            font-family: monospace;
+            height: 60px;
+            overflow-y: auto;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* --- THEORY SECTION --- */
+        .theory-section {
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        ul { padding-left: 20px; }
+        li { margin-bottom: 5px; }
+
+    </style>
+</head>
+<body>
+
+    <header style="text-align: center;">
+        <h1>Recursion & The Stack</h1>
+        <p>Visualizing how the System Stack manages function calls using Fibonacci.</p>
+    </header>
+
+    <div class="container">
+        <div class="panel">
+            <div class="controls">
+                <label>Calculate Fib(n): </label>
+                <input type="number" id="n-input" value="3" min="0" max="6">
+                <button onclick="startSimulation()" id="btn-run">Run Visualization</button>
+                <p style="font-size: 0.8rem; color: #666; margin-top: 5px;">(Max n=6 to prevent stack overflow in demo)</p>
+            </div>
+
+            <h3>C++ Implementation</h3>
+            <pre>
+int fib(int n) {
+    // Base Case
+    if (n <= 1) 
+        return n;
+    
+    // Recursive Case
+    return fib(n-1) + fib(n-2);
+}
+            </pre>
+            <div style="margin-top: 1rem;">
+                <strong>Key Concept:</strong>
+                <p>Every time a function calls itself, the computer pushes a <em>Stack Frame</em> onto the memory stack to save local variables and the return address.</p>
+            </div>
+        </div>
+
+        <div class="vis-container">
+            <h3 style="text-align: center; margin-top: 0;">System Call Stack</h3>
+            <div id="stack-view">
+                <div class="stack-label">STACK MEMORY</div>
+                </div>
+            <div id="status-log">Ready to start...</div>
+        </div>
+    </div>
+
+    <div class="theory-section">
+        <div class="card">
+            <h2>1. What is Recursion?</h2>
+            <p>Recursion is a technique where a function calls itself to solve smaller instances of the same problem.</p>
+            <ul>
+                <li><strong>Base Case:</strong> The condition to stop recursion (e.g., <code>if n <= 1</code>).</li>
+                <li><strong>Recursive Step:</strong> The logic where the function calls itself.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>2. Advantages & Disadvantages</h2>
+            <strong>Advantages:</strong>
+            <ul>
+                <li>Code is cleaner and more concise.</li>
+                <li>Excellent for tree/graph traversals (DFS).</li>
+                <li>Naturally solves problems like Tower of Hanoi.</li>
+            </ul>
+            <strong>Disadvantages:</strong>
+            <ul>
+                <li><strong>Stack Overflow:</strong> If depth is too high, memory runs out.</li>
+                <li><strong>Overhead:</strong> Function calls are slower than loops (iteration).</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>3. Applications</h2>
+            <ul>
+                <li><strong>Data Structures:</strong> Trees, Graphs (DFS).</li>
+                <li><strong>Algorithms:</strong> QuickSort, MergeSort, Binary Search.</li>
+                <li><strong>Parsing:</strong> Compilers use recursion to parse syntax.</li>
+                <li><strong>Mathematics:</strong> Factorials, Fibonacci Series.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const stackView = document.getElementById('stack-view');
+        const statusLog = document.getElementById('status-log');
+        const btnRun = document.getElementById('btn-run');
+        let delay = 1200; // Animation speed
+
+        function log(msg) {
+            statusLog.innerText = `> ${msg}`;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function pushFrame(n, callType) {
+            const frame = document.createElement('div');
+            frame.className = 'stack-frame';
+            frame.id = `frame-${n}-${Date.now()}`; // Unique ID
+            frame.innerHTML = `
+                <div>fib(${n})</div>
+                <span class="info-tag">${callType}</span>
+            `;
+            stackView.appendChild(frame);
+            log(`Pushing fib(${n}) to Stack...`);
+            await sleep(delay);
+            return frame;
+        }
+
+        async function popFrame(frame, result) {
+            frame.classList.add('returning');
+            frame.innerHTML = `<div>Returns: ${result}</div>`;
+            log(`Popping fib() -> Returning ${result}`);
+            await sleep(delay);
+            if(frame.parentNode) frame.parentNode.removeChild(frame);
+        }
+
+        async function fibVisualizer(n, isLeft = true) {
+            // Visualize Push
+            let callType = isLeft ? "Left Child (n-1)" : "Right Child (n-2)";
+            if(stackView.children.length === 1) callType = "Main Call"; // Adjust for label + main
+
+            const frame = await pushFrame(n, callType);
+
+            // Base Case
+            if (n <= 1) {
+                await popFrame(frame, n);
+                return n;
+            }
+
+            // Recursive Step
+            // Calculate fib(n-1)
+            let leftVal = await fibVisualizer(n - 1, true);
+            
+            // Calculate fib(n-2)
+            let rightVal = await fibVisualizer(n - 2, false);
+
+            let result = leftVal + rightVal;
+            await popFrame(frame, result);
+            return result;
+        }
+
+        async function startSimulation() {
+            const n = parseInt(document.getElementById('n-input').value);
+            if (n > 6) {
+                alert("Please use n <= 6 for this visualization to fit on screen.");
+                return;
+            }
+
+            btnRun.disabled = true;
+            // Clear previous simulation (keep label)
+            stackView.innerHTML = '<div class="stack-label">STACK MEMORY</div>';
+            statusLog.innerText = "Starting...";
+            
+            await fibVisualizer(n);
+            
+            log(`Final Result: fib(${n}) calculation complete.`);
+            btnRun.disabled = false;
+        }
+    </script>
+
+    <footer style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #ecf0f1; text-align: center; width: 100%; max-width: 1000px; border-radius: 10px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        <p style="margin: 0; font-size: 0.95em; line-height: 1.8;">
+            Created by <strong>Smruti Dilip Dabhole</strong><br>
+            Assistant Professor, Department of Computer Science<br>
+            Christ University, Bangalore – Yeshwantpur Campus
+        </p>
+    </footer>
+
+</body>
+</html>
